@@ -1,0 +1,76 @@
+<script type="text/javascript" src="program.js"></script>
+
+<br>
+<h2>Ouptput of Objct creation methods</h2>
+<script>
+    // Initializer Method
+    
+    var obj = {
+        firstName : 'Aman',
+        lastName : 'Juneja',
+        mob : '1234567890',
+        dispalyUser : function(){
+            document.writeln(this.firstName+' '+this.lastName+'<br>');
+        }
+    };
+    document.writeln(obj.firstName+' '+obj.lastName+' / Mob - '+obj.mob+'<br>');
+    
+    // Constructor Method
+    function Person(firstName,lastName,mob) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.mob = mob;
+    }
+    
+    var user = new Person('Aman','Juneja','123456789');
+    document.writeln(user.firstName+' '+user.lastName+' / Mob - '+user.mob+'<br>');
+    
+    // Object.create Method
+    
+    var Userdata = {
+        firstName : 'Aman',
+        lastName : 'Juneja',
+        mob : '1234567890',
+        displayUser : function(){
+            document.writeln(this.firstName+' '+this.lastName+'<br>');
+        }
+    };
+    
+    
+    var rahul = Object.create(Userdata);
+    rahul.firstName = "James";
+    rahul.lastName = "Bond";
+    rahul.displayUser();
+    
+    var rahul = Object.create(Userdata);
+    rahul.firstName = "John";
+    rahul.lastName = "Doe";
+    rahul.displayUser();
+    
+    var rahul = Object.create(Userdata);
+    rahul.firstName = "Kim";
+    rahul.lastName = "Clark";
+    rahul.displayUser();
+    
+    
+    
+</script>
+
+<h2>Ouptput of Array creation methods</h2>
+<script>
+    //Initializer Method
+    var newArr = ['1','2','apple','black'];
+    document.writeln(newArr+'<br>');
+    
+    // Construtor Method
+    var newArr1 = new Array('Cricket','Football');
+    document.writeln(newArr1.length+'<br>');
+    
+    //Constructor Method with only lenght passed
+    var newArr2 = new Array[100]
+    document.writeln(newArr2.length+'<br>');
+
+
+    
+    
+</script>
