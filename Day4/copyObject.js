@@ -19,6 +19,6 @@ function copyObject(src,dest={}){
 var newobj = copyObject(obj,{});
 obj.displayname = function(){
   return this.make+'///';
-}
+};
 console.log(newobj.displayname());
 console.log(obj.displayname());

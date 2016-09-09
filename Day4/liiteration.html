@@ -1,0 +1,21 @@
+<ul id="carList">
+    <li>BMW</li>
+    <li>Audi</li>
+    <li>Mercedes</li>
+    <li>Royce</li>
+    <li>Ferrari</li>
+    <li>Tesla</li>
+</ul>
+<script>
+   var ul = document.getElementById('carList');
+   var listitems = ul.getElementsByTagName('li');
+   for(var i = 0;i < listitems.length;i++){
+            var li = listitems[i];
+            li.onclick = displayName;
+   }
+   
+   function displayName() {
+        alert(this.innerHTML);
+   }
+</script>
+
