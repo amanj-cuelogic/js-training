@@ -1,0 +1,20 @@
+{
+  "name": "node_hapi_training",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "blipp": "^2.3.0",
+    "boom": "^4.0.0",
+    "hapi": "^15.1.0",
+    "hapi-level": "^5.0.1",
+    "mongoose": "^4.6.1",
+    "uuid": "^2.0.3"
+  }
+}
