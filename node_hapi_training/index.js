@@ -1,43 +1,63 @@
+'use strict';
+
 const Hapi = require("hapi");
-
+const Blipp = require("blipp");
+const mongoose = require('mongoose');
+//const HapiLevel = require("hapi-level");
+//const Hello =   require("./hello.js");
+//const UserStore = require("./user-store.js");
 const server = new Hapi.Server();
+const User = require('./user-model.js');
 
-var messages   =   [
-    {
-        name    : "Tom",
-        designation :   "SE",
-        company :   "Cue"
-    },
-    {
-        name    : "Steve",
-        designation :   "SSE",
-        company :   "Cue"
-    },
-    {
-        name    : "Jim",
-        designation :   "SSE",
-        company :   "Cue"
-    }
-    
-];
+mongoose.connect("mongodb://localhost/test");
+   
+
 server.connection({
    host :   "localhost" ,
    port :   8000
 });
 
 server.route({
-    method  :   "GET",
-    path    :   "/",
-    handler :   function(req,reply){
-        return reply(JSON.stringify(messages)).code(200);
-    }
+        method  :   'GET',
+        path    :   '/users/{name}',
+        handler : function(req,reply){
+            User.findOne({name : req.params.name},(error,user)=>{
+                if(error){
+                    throw error;    
+                }
+                return reply(user); 
+            });
+            
+        }
+});
+server.route({
+        method  :   'POST',
+        path    :   '/users/{name}',
+        handler : function(req,reply){
+            User.create({name : req.params.name},(error,user)=>{
+                if(error) {
+                    throw error;
+                }
+                return reply(user);
+            });
+        }
 });
 
-server.start((err)  =>  {
-   if(err){
-        throw   err;
-    }
-    console.log("Server Running at",server.info.uri);
+server.register([
+    Blipp
+    ],
+    { routes : {
+            prefix : '/v1'
+        }
+    },(err)  => {
+        server.start((err)  =>  {
+            if(err){
+                 throw   err;
+             }
+             console.log("Server Running at",server.info.uri);
+    });    
 });
+
+
 
 
