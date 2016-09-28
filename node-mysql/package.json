@@ -11,7 +11,9 @@
   "license": "ISC",
   "dependencies": {
     "blipp": "^2.3.0",
+    "boom": "^4.1.0",
     "hapi": "^15.1.1",
+    "joi": "^9.0.4",
     "mysql": "^2.11.1"
   }
 }
