@@ -5,42 +5,41 @@ var bcrypt  =   require("bcrypt");
 
 global.salt    =   bcrypt.genSaltSync(10);
 
-//var User = require('./models/user-model.js');
-const pre1 = function(request,reply){
-    model.usermodel.validateToken(request.headers.token).then(function(response){
-            reply(response);
-        },
-        function(error){
-            reply(Boom.unauthorized(error)).takeover();
-        });
-};
 
-exports.register    =   function(server,options,next){
-  
-    var userSchema  =   Joi.object().keys({
-        first_name  :   Joi.string().min(2).max(10).regex(/^[a-zA-Z ]*$/).required(),
-        last_name  :   Joi.string().min(3).max(10).regex(/^[a-zA-Z ]*$/).required(),
-        email  :   Joi.string().email(),
-        phone   :  Joi.number().required(),
-        password    :   Joi.string().regex(/^[a-zA-Z0-9]{3,30}$/).required(),
-        meta    :   Joi.object()
-    });
-    
-    server.route([
+var userSchema  =   Joi.object().keys({
+    first_name  :   Joi.string().min(2).max(10).regex(/^[a-zA-Z ]*$/).required(),
+    last_name  :   Joi.string().min(3).max(10).regex(/^[a-zA-Z ]*$/).required(),
+    email  :   Joi.string().email(),
+    phone   :  Joi.number().required(),
+    password    :   Joi.string().regex(/^[a-zA-Z0-9]{3,30}$/).required(),
+    meta    :   Joi.object()
+});
+
+var userUpdateSchema  =   Joi.object().keys({
+    first_name  :  [Joi.string().min(2).max(10).regex(/^[a-zA-Z ]*$/).required()],
+    last_name  :   [Joi.string().min(3).max(10).regex(/^[a-zA-Z ]*$/).required()],
+    email  :   [Joi.string().email()],
+    phone   :  [Joi.number().required()],
+    password    :   [Joi.string().regex(/^[a-zA-Z0-9]{3,30}$/).required()],
+    meta    :   Joi.object()
+});
+
+
+module.exports = [  
+
     {
         method  :   "GET",
         path    :   "/users",
         config  : {
-            pre :   [
-                { method : pre1 }
-            ],
             handler :   function(req,rep){
-                model.usermodel.getAllUsers((err,data)=>{
-                    if (err) {
-                        return rep(Boom.badRequest(err));
-                    }
+                model.usermodel.getAllUsers().then(function(data){
                     rep(data);
+                },function(data){
+                    rep(Boom.badRequest(data));
                 });
+            },
+            auth : {
+                strategy    :   'token'
             }
         }
         
@@ -52,29 +51,22 @@ exports.register    =   function(server,options,next){
         path    :   "/userdetails",
         handler :   function(req,rep){
             
-            var userId = req.pre.user_id;
-            model.usermodel.getUser(userId,(err,data)=>{
-                if (err) {
-                    return rep(Boom.badRequest(err));
-                }
+            var userId = req.auth.credentials.id;
+            model.usermodel.getUser(userId).then(function(data){
                 rep(data);
+            },function(data){
+                rep(Boom.badRequest(data));
             });
         },
-        config  :   {
-            pre :   [
-                { method : pre1,assign:'user_id' }
-            ]
-        }
     },
     {
         method  :   "POST",
         path    :   "/users",
         handler :   function(req,rep){
-                        model.usermodel.createUser(req,(err,data)=>{
-                            if (err) {
-                                return rep(Boom.badRequest(err));
-                            }
+                        model.usermodel.createUser(req).then(function(data){
                             rep(data);
+                        },function(data){
+                            rep(Boom.badRequest(data));
                         });    
                 
         },
@@ -84,18 +76,19 @@ exports.register    =   function(server,options,next){
                 query   :   false,
                 params  :  false,
                 payload :   userSchema
-            }
+            },
+            auth    :   false
         }
     },
     {
         method  :   "DELETE",
         path    :   "/users/{id}",
         handler :   function(req,rep){
-            model.usermodel.deleteUser(req,function(err,data){
-                if (err) {
-                    return rep(Boom.badRequest(err));
-                }
+            var userId = req.params.id;
+            model.usermodel.deleteUser(userId).then(function(data){
                 rep(data);
+            }, function(data){
+                rep(Boom.badRequest(data));
             });
         },
         config  :   {
@@ -103,28 +96,26 @@ exports.register    =   function(server,options,next){
                 params  :   {
                     id  :   Joi.number().required()
                 }
-            }
+            },
+            auth    :   false
         }
     },
     {
         method  :   "POST",
         path    :   "/userupdate",
         handler :   function(req,rep){
-                    var userId = req.pre.user_id;
-                    model.usermodel.updateUser(req,userId,(err,data)=>{
-                        if (err) {
-                            return rep(Boom.badRequest(err));
-                        }
+            
+                    var userId = req.auth.credentials.id;
+                    model.usermodel.updateUser(req,userId).then(function(data){
                         rep(data);
+                    },function(data){
+                        rep(Boom.badRequest(data));
                     });  
             
         },
         config  :   {
-            pre :   [
-                { method : pre1,assign:'user_id' }
-            ],
             validate    :   {
-                payload :   userSchema
+                payload :   userUpdateSchema
             }
         }
     },
@@ -145,14 +136,15 @@ exports.register    =   function(server,options,next){
                     email   :   Joi.string().email().required(),
                     password    :   Joi.string().required()
                 }
-            }
+            },
+            auth    :   false
         }
     },
     {
         method  :   "GET",
         path    :   "/logout",
         handler :   function(req,rep){
-                    var userId = req.pre.user_id;
+                    var userId = req.auth.credentials.id;
                     model.accountmodel.logout(userId).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
@@ -166,7 +158,7 @@ exports.register    =   function(server,options,next){
         method  :   "POST",
         path    :   "/addfriend",
         handler :   function(req,rep){
-                    var userId = req.pre.user_id;
+                    var userId = req.auth.credentials.id;
                     model.usermodel.addFriend(userId,req.payload.friend_id).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
@@ -175,9 +167,6 @@ exports.register    =   function(server,options,next){
             
         },
         config  :   {
-            pre :   [
-                { method : pre1,assign:'user_id' }
-            ],
             validate    :   {
                 payload :   {
                     friend_id   :   Joi.number().required()
@@ -190,7 +179,7 @@ exports.register    =   function(server,options,next){
         method  :   "GET",
         path    :   "/listfriend",
         handler :   function(req,rep){
-                    var userId = req.pre.user_id;
+                    var userId = req.auth.credentials.id;
                     model.usermodel.listFriends(userId).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
@@ -198,17 +187,13 @@ exports.register    =   function(server,options,next){
                         });  
             
         },
-        config  :   {
-            pre :   [
-                { method : pre1,assign:'user_id' }
-            ]
-        }
+        
     },
     {
         method  :   "GET",
         path    :   "/search/{query_string}",
         handler :   function(req,rep){
-                    var userId = req.pre.user_id;
+                    var userId = req.auth.credentials.id;
                     model.usermodel.searchFriend(userId,req.params.query_string).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
@@ -217,9 +202,7 @@ exports.register    =   function(server,options,next){
             
         },
         config  :   {
-            pre :   [
-                { method : pre1,assign:'user_id' }
-            ],
+            
             validate    :   {
                 params :   {
                     query_string   :   Joi.string().required()
@@ -232,7 +215,7 @@ exports.register    =   function(server,options,next){
         method  :   "DELETE",
         path    :   "/deletefriend/{friend_id}",
         handler :   function(req,rep){
-                    var userId = req.pre.user_id;
+                    var userId = req.auth.credentials.id;
                     model.usermodel.deleteFriend(userId,req.params.friend_id).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
@@ -241,9 +224,6 @@ exports.register    =   function(server,options,next){
             
         },
         config  :   {
-            pre :   [
-                { method : pre1,assign:'user_id' }
-            ],
             validate    :   {
                 params :   {
                     friend_id   :   Joi.number().required()
@@ -255,7 +235,7 @@ exports.register    =   function(server,options,next){
         method  :   "GET",
         path    :   "/viewfriend/{friend_id}",
         handler :   function(req,rep){
-                    var userId = req.pre.user_id;
+                    var userId = req.auth.credentials.id;
                     model.usermodel.viewFriend(userId,req.params.friend_id).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
@@ -264,9 +244,6 @@ exports.register    =   function(server,options,next){
             
         },
         config  :   {
-            pre :   [
-                { method : pre1,assign:'user_id' }
-            ],
             validate    :   {
                 params :   {
                     friend_id   :   Joi.number().required()
@@ -276,10 +253,5 @@ exports.register    =   function(server,options,next){
         }
     }
     
-    ]);
-
-    return next();
-};
-exports.register.attributes = {
-    name    :   "AppRoutes"
-};
+   
+];

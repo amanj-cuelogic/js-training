@@ -6,36 +6,91 @@ function UserModel() {
     
 }
 
-UserModel.prototype.getAllUsers = function(callback){
-              connection.query("SELECT * FROM users",callback);
+UserModel.prototype.getAllUsers = function(){
+              return new Promise(function(resolve,reject){
+                            connection.query("SELECT id,first_name,last_name,email,phone FROM users",function(err,rows){
+                                          if(err){
+                                                        reject(err);
+                                          }
+                                          resolve(rows);
+                                          
+                            });              
+              });
+              
       };
       
-UserModel.prototype.getUser =  function(userId,callback){
-              connection.query("SELECT * FROM users WHERE id = ?",[userId],callback);     
+UserModel.prototype.getUser =  function(userId){
+              return new Promise(function(resolve,reject){
+                            
+                            connection.query("SELECT * FROM users WHERE id = ?",[userId],function(err,rows){
+                                          if (err) {
+                                            reject(err);
+                                          }
+                                          resolve(rows);
+                            });                   
+              });
+              
       };
       
-UserModel.prototype.createUser  =   function(req,callback){
-            var password = bcrypt.hashSync(req.payload.password,salt);
-            var userData =   [req.payload.first_name.trim(),req.payload.last_name.trim(),req.payload.email,req.payload.phone,password];
-            var sql =   "INSERT INTO users (`first_name`,`last_name`,`email`,`phone`,`password`) VALUES (?,?,?,?,?)";
-            sql =   mysql.format(sql,userData);
-            connection.query(sql,callback);     
+UserModel.prototype.createUser  =   function(req){
+              return new Promise(function(resolve,reject){
+                            var password = bcrypt.hashSync(req.payload.password,salt);
+                            var userData =   [req.payload.first_name.trim(),req.payload.last_name.trim(),req.payload.email,req.payload.phone,password];
+                            var sql =   "INSERT INTO users (`first_name`,`last_name`,`email`,`phone`,`password`) VALUES (?,?,?,?,?)";
+                            sql =   mysql.format(sql,userData);
+                            connection.query(sql,function(err,rows){
+                                          if(err){
+                                                        reject(err);
+                                          }
+                                          resolve(rows);
+                            });                  
+              });
+            
       };
 
-UserModel.prototype.updateUser  =   function(req,userId,callback){
-       
-            var sql =   "UPDATE users SET `first_name` = ?,`last_name` = ?,`email` = ?,`phone` = ? WHERE `id` = ?";
-            var inserts =   [req.payload.first_name,req.payload.last_name,req.payload.email,req.payload.phone,userId];
-            sql =   mysql.format(sql,inserts);
-            connection.query(sql,callback);     
+UserModel.prototype.updateUser  =   function(req,userId){
+            return new Promise(function(resolve,reject){
+              
+                            var queryString = '';
+            
+                            for(var keys in req.payload){
+                              if (req.payload.hasOwnProperty(keys)) {
+                                 queryString += "`"+keys+"` = '"+req.payload[keys]+"',";
+                              }
+                            }
+                            if (queryString !== '') {
+                                queryString = queryString.slice(0,-1);
+                                console.log(queryString);
+                                var sql =   "UPDATE users SET "+queryString+" WHERE id = ?";
+                                var inserts =   [userId];
+                                sql =   mysql.format(sql,inserts);
+                                connection.query(sql,function(err,rows){
+                                          if (err) {
+                                            reject(err);
+                                          }
+                                          resolve(rows);
+                                });     
+                            }else{
+                                reject("Nothing to Update");
+                            }  
+              });
+            
+            
     };
     
-UserModel.prototype.deleteUser  =  function(req,callback){
+UserModel.prototype.deleteUser  =  function(userId){
+            return new Promise(function(resolve,reject){
+                            var sql =   "DELETE FROM users WHERE id = ?";
+                            var inserts =   [userId];
+                            sql =   mysql.format(sql,inserts);
+                            connection.query(sql,function(err,rows){
+                                          if (err) {
+                                            reject(err);
+                                          }
+                                          resolve(rows);
+                            });   
+              });
             
-            var sql =   "DELETE FROM users WHERE id = ?";
-            var inserts =   [req.params.id];
-            sql =   mysql.format(sql,inserts);
-            connection.query(sql,callback); 
       };
       
       
@@ -151,6 +206,7 @@ UserModel.prototype.viewFriend = function(user_id,friend_id){
 };
 
 UserModel.prototype.validateToken = function(token){
+              
         return new Promise(function(resolve,reject){
                 var sql = "SELECT id FROM users WHERE access_token = ?";
                 var inserts = [token];

@@ -1,11 +1,12 @@
 var Hapi    =   require("hapi");
 var mysql   =   require("mysql");
 var Blipp   =   require("blipp");
-var model   =   require("./models");
-
-var AppRoutes   =   require("./routes.js");
+//var model   =   require("./models");
+var hapiauthjwt = require('hapi-auth-jwt');
+var AppRoutes   =   require("./routes");
 //var Joi =   require("joi");
-var Boom    =   require("boom");
+var jwt = require('jsonwebtoken');
+//var Boom    =   require("boom");
 
 
 var server  =   new Hapi.Server();
@@ -32,20 +33,31 @@ global.connection =   mysql.createConnection({
         }    
     });
 
-//server.ext('onPreHandler',function(request,reply){
-//    var access_token    =   request.params.access_token;
-//    if (access_token !== undefined && request.params.access_token !== '') {
-//         model.accountmodel.validateToken(access_token);           
-//    }else{
-//         reply(Boom.badRequest("Access token is missing"));
-//    }
-//   
-//});
+global.privateKey = 'BbZJjyoXAdr8BUZuiKKARWimKfrSmQ6fv8kZ7OFfc';
+
+
+var validate = function (request, decodedToken, callback) {
+    var error,
+        credentials = decodedToken || {};
+    console.log(decodedToken);
+    if (!credentials) {
+        return callback(error, false, credentials);
+    }
+
+    return callback(error, true, credentials);
+};
 
 server.register([
-        Blipp,
-        AppRoutes
-    ],(err)=>{
+        { register : Blipp, options : {showAuth : true}},
+        hapiauthjwt,
+    ],function (err){
+        server.auth.strategy('token', 'jwt', {
+            key: privateKey,
+            validateFunc: validate,
+            verifyOptions: { algorithms: [ 'HS256' ] }  // only allow HS256 algorithm
+        });
+        server.auth.default('token');
+        server.route(AppRoutes);
         server.start((err)=>{
             if (err) {
                 throw err;

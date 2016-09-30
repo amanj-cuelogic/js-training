@@ -1,6 +1,7 @@
 var mysql   =   require("mysql");
 var bcrypt  =   require("bcrypt");
-var hat =   require("hat");
+//var hat =   require("hat");
+var jwt = require('jsonwebtoken');
 
 function AccountModel() {
     
@@ -13,7 +14,6 @@ AccountModel.prototype.login    =   function(req){
         var sql =   "SELECT * from users WHERE  email   =   ?";
         var inserts =   [req.payload.email];
         sql =   mysql.format(sql,inserts);
-        console.log(sql);
         connection.query(sql,function(err,rows){
                 if (err) {
                     reject(err);
@@ -24,18 +24,27 @@ AccountModel.prototype.login    =   function(req){
                             reject(err);
                         }
                         if (res === true) {
-                            if(rows[0].hasOwnProperty(access_token) && rows[0].access_token !== ''){
-                                resolve({"access_token":rows[0].access_token});
+                            if(rows[0].hasOwnProperty("access_token") && rows[0].access_token){
+                                jwt.verify(rows[0].access_token,privateKey,function(err){
+                                    if(err){
+                                        var token = jwt.sign({ id: rows[0].id , iat : Date.now() + 48*3600*60 }, privateKey, { algorithm: 'HS256'} );
+                                        resolve({"access_token":token});
+                                    }
+                                    resolve({"access_token":rows[0].access_token});
+                                });
+                                
+                                
                             }else{
-                                var access_token = hat();
+                                //var access_token = hat();
+                                var token = jwt.sign({ id: rows[0].id , iat : Date.now() + 48*3600*60 }, privateKey, { algorithm: 'HS256'} );
                                 var sql = "UPDATE users SET access_token = ? WHERE id = ?";
-                                var inserts = [access_token,rows[0].id];
+                                var inserts = [token,rows[0].id];
                                 sql = mysql.format(sql,inserts);
                                 connection.query(sql,function(err){
                                    if(err){
                                         reject(err);
                                     }
-                                    resolve({'access_token':access_token});
+                                    resolve({'access_token':token});
                                 });
                             }
                         }else{
