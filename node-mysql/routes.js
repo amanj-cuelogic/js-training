@@ -5,6 +5,7 @@ var bcrypt  =   require("bcrypt");
 var promise = require("bluebird");
 //var User = require("./models/user-model.js");
 promise.promisifyAll(model.usermodel);
+promise.promisifyAll(model.accountmodel);
 
 
 global.salt    =   bcrypt.genSaltSync(10);
@@ -133,7 +134,7 @@ module.exports = [
         method  :   "POST",
         path    :   "/login",
         handler :   function(req,rep){
-                    model.accountmodel.login(req).then(function(response){
+                    model.accountmodel.loginAsync(req).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
                             return rep(Boom.unauthorized(error));
@@ -155,7 +156,7 @@ module.exports = [
         path    :   "/logout",
         handler :   function(req,rep){
                     var userId = req.auth.credentials.id;
-                    model.accountmodel.logout(userId).then(function(response){
+                    model.accountmodel.logoutAsync(userId).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
                             return rep(Boom.unauthorized(error));
@@ -169,7 +170,7 @@ module.exports = [
         path    :   "/addfriend",
         handler :   function(req,rep){
                     var userId = req.auth.credentials.id;
-                    model.usermodel.addFriend(userId,req.payload.friend_id).then(function(response){
+                    model.usermodel.addFriendAsync(userId,req.payload.friend_id).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
                             return rep(Boom.unauthorized(error));
@@ -190,7 +191,7 @@ module.exports = [
         path    :   "/listfriend",
         handler :   function(req,rep){
                     var userId = req.auth.credentials.id;
-                    model.usermodel.listFriends(userId).then(function(response){
+                    model.usermodel.listFriendsAsync(userId).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
                             return rep(Boom.badRequest(error));
@@ -204,7 +205,7 @@ module.exports = [
         path    :   "/search/{query_string}",
         handler :   function(req,rep){
                     var userId = req.auth.credentials.id;
-                    model.usermodel.searchFriend(userId,req.params.query_string).then(function(response){
+                    model.usermodel.searchFriendAsync(userId,req.params.query_string).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
                             return rep(Boom.badRequest(error));
@@ -226,7 +227,7 @@ module.exports = [
         path    :   "/deletefriend/{friend_id}",
         handler :   function(req,rep){
                     var userId = req.auth.credentials.id;
-                    model.usermodel.deleteFriend(userId,req.params.friend_id).then(function(response){
+                    model.usermodel.deleteFriendAsync(userId,req.params.friend_id).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
                             return rep(Boom.badRequest(error));
@@ -246,7 +247,7 @@ module.exports = [
         path    :   "/viewfriend/{friend_id}",
         handler :   function(req,rep){
                     var userId = req.auth.credentials.id;
-                    model.usermodel.viewFriend(userId,req.params.friend_id).then(function(response){
+                    model.usermodel.viewFriendAsync(userId,req.params.friend_id).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
                             return rep(Boom.badRequest(error));

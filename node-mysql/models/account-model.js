@@ -1,78 +1,75 @@
 var mysql   =   require("mysql");
-var bcrypt  =   require("bcrypt");
-//var hat =   require("hat");
+//var bcrypt  =   require("bcrypt");
 var jwt = require('jsonwebtoken');
+var promise   = require("bluebird");
+promise.promisifyAll(require("mysql/lib/Connection").prototype);
+var bcrypt = promise.promisifyAll(require("bcrypt"));
 
 function AccountModel() {
     
 }
 
 
-AccountModel.prototype.login    =   function(req){
+AccountModel.prototype.login    =   function login(req,callback){
     
-    return new Promise(function(resolve,reject){
         var sql =   "SELECT * from users WHERE  email   =   ?";
         var inserts =   [req.payload.email];
         sql =   mysql.format(sql,inserts);
-        connection.query(sql,function(err,rows){
-                if (err) {
-                    reject(err);
-                }
-                if (rows.length > 0) {
-                    bcrypt.compare(req.payload.password,rows[0].password,function(err,res){
-                        if(err){
-                            reject(err);
-                        }
-                        if (res === true) {
-                            if(rows[0].hasOwnProperty("access_token") && rows[0].access_token){
-                                jwt.verify(rows[0].access_token,privateKey,function(err){
-                                    if(err){
-                                        var token = jwt.sign({ id: rows[0].id , iat : Date.now() + 48*3600*60 }, privateKey, { algorithm: 'HS256'} );
-                                        resolve({"access_token":token});
-                                    }
-                                    resolve({"access_token":rows[0].access_token});
-                                });
-                                
-                                
-                            }else{
-                                //var access_token = hat();
-                                var token = jwt.sign({ id: rows[0].id , iat : Date.now() + 48*3600*60 }, privateKey, { algorithm: 'HS256'} );
-                                var sql = "UPDATE users SET access_token = ? WHERE id = ?";
-                                var inserts = [token,rows[0].id];
-                                sql = mysql.format(sql,inserts);
-                                connection.query(sql,function(err){
-                                   if(err){
-                                        reject(err);
-                                    }
-                                    resolve({'access_token':token});
-                                });
-                            }
+        connection.queryAsync(sql).then(function(rows){
+                
+            if (rows.length) {
+                bcrypt.compareAsync(req.payload.password,rows[0].password).then(function(response){
+                    
+                    if (response === true) {
+                        if(rows[0].hasOwnProperty("access_token") && rows[0].access_token){
+                            jwt.verify(rows[0].access_token,privateKey,function(err){
+                                if(err){
+                                    var token = jwt.sign({ id: rows[0].id , iat : Date.now() + 48*3600*60 }, privateKey, { algorithm: 'HS256'} );
+                                    callback(null,{"access_token":token});
+                                }
+                                callback(null,{"access_token":rows[0].access_token});
+                            });
+                            
+                            
                         }else{
-                            reject("Invalid password");
+                            //var access_token = hat();
+                            var token = jwt.sign({ id: rows[0].id , iat : Date.now() + 48*3600*60 }, privateKey, { algorithm: 'HS256'} );
+                            var sql = "UPDATE users SET access_token = ? WHERE id = ?";
+                            var inserts = [token,rows[0].id];
+                            sql = mysql.format(sql,inserts);
+                            connection.queryAsync(sql).then(function(){
+                               callback(null,{'access_token':token});
+                            },function(error){
+                                callback(error);
+                            });
                         }
-                    });
-                }else{
-                    reject("User does not exist");
-                }
-            });     
-    });
-    
+                    }else{
+                        callback("Invalid password");
+                    }
+                },function(error){
+                    callback(error);    
+                });
+            }else{
+                callback("User does not exist");
+            }
+        },function(error){
+            callback(error);    
+        });     
     
 };
 
-AccountModel.prototype.logout = function(userId){
-    return new Promise(function(resolve,reject){
+AccountModel.prototype.logout = function logout(userId,callback){
+    
         var sql = "UPDATE users SET `access_token` = null WHERE id = ?";
         var inserts = [userId];
         sql = mysql.format(sql,inserts);
-        connection.query(sql,function(error){
-           if(error){
-                reject(error);
-            }
-            resolve({"message" : "User logged out successfully"});
+        connection.queryAsync(sql).then(function(){
+            callback(null,{"message" : "User logged out successfully"});
+        },function(error){
+            callback(error);    
         });
-    });
-}
+    
+};
 
 
 

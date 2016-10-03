@@ -1,10 +1,7 @@
 var bcrypt  =   require("bcrypt");
-var promise   = require("bluebird");
 var mysql = require("mysql");
+var promise   = require("bluebird");
 promise.promisifyAll(require("mysql/lib/Connection").prototype);
-
-
-
 
 function UserModel() {
     
@@ -13,7 +10,7 @@ function UserModel() {
 
 UserModel.prototype.getAllUsers = function getAllUsers(callback){
               
-              connection.queryAsync("SELECT id,first_name,last_name,email,phone FROM userss").then(function(response){
+              connection.queryAsync("SELECT id,first_name,last_name,email,phone FROM users").then(function(response){
                                           callback(null,response);
                             },function(error){
                                           callback(error);
@@ -90,135 +87,79 @@ UserModel.prototype.deleteUser  =  function deleteUser(userId,callback){
       };
       
       
-UserModel.prototype.addFriend = function(user_id,friend_id){
+UserModel.prototype.addFriend = function addFriend(user_id,friend_id,callback){
        
-       return new Promise(function(resolve,reject){
                 var sql = "INSERT INTO friends (`user_id`,`friend_id`) VALUES (?,?)";
                 var inserts = [user_id,friend_id];
                 sql = mysql.format(sql,inserts);
-                connection.query(sql,function(error){
-                        if (error) {
-                            reject(error);
-                        }
-                        resolve(user_id+" is now firend with "+friend_id);
+                connection.queryAsync(sql).then(function(response){
+                        callback(null,JSON.stringify(user_id+" is now firend with "+friend_id));
+                },function(error){
+                        callback(error);    
                 });
-        });
+        
+};
+
+UserModel.prototype.listFriends = function listFriends(user_id,callback){
+        
+              var sql = "SELECT DISTINCT(users.id), CONCAT(users.first_name,' ',users.last_name) as name, users.email, users.phone  FROM users JOIN friends ON users.id = friends.friend_id AND friends.user_id = "+user_id+" ";
+              connection.queryAsync(sql).then(function(response){
+                           callback(null,response);
+              },function(error){
+                            callback(error);              
+              });
+        
+};
+
+UserModel.prototype.searchFriend = function searchFriend(user_id,query_string,callback){
+        
+              var sql = "SELECT DISTINCT(users.id), CONCAT(users.first_name,' ',users.last_name) as name, users.email, users.phone  FROM friends JOIN users ON users.id = friends.friend_id AND friends.user_id = "+user_id+" WHERE users.first_name LIKE \""+query_string+"%\" OR users.last_name LIKE \""+query_string+"%\" ";
+              connection.queryAsync(sql).then(function(response){
+                      callback(null,response);
+              },function(error){
+                            callback(error);
+              });
+      
+        
+};
+
+UserModel.prototype.deleteFriend = function deleteFriend(user_id,friend_id,callback){
+        
+              var sql = "DELETE FROM friends WHERE user_id = ? AND friend_id = ?";
+              var inserts = [user_id,friend_id];
+              sql = mysql.format(sql,inserts);
+              connection.queryAsync(sql).then(function(response){
+                      if (response.affectedRows !== 0) {
+                              callback(null,response);    
+                      }else{
+                              callback("User Relation doesn't exist.");
+                      }
+                      
+              },function(error){
+                            callback(error);
+              });
+        
+};
+
+UserModel.prototype.viewFriend = function viewFriend(user_id,friend_id,callback){
+        
+              var sql = "SELECT DISTINCT(u.id),CONCAT(u.first_name,' ',u.last_name) as name, u.phone, u.email FROM users as u JOIN  friends as f ON u.id = f.friend_id WHERE f.user_id = ? AND f.friend_id = ?";
+              var inserts = [user_id,friend_id];
+              sql = mysql.format(sql,inserts);
+              connection.queryAsync(sql).then(function(response){
+                      
+                      if (response.length) {
+                              callback(null,response);    
+                      }else{
+                              callback("User Relation doesn't exist.");
+                      }
+                      
+              },function(error){
+                            callback(error);              
+              });
       
 };
 
-UserModel.prototype.listFriends = function(user_id){
-        
-        return new Promise(function(resolve,reject){
-                var sql = "SELECT GROUP_CONCAT(friend_id) as friends FROM friends WHERE `user_id` = ?";
-                var inserts = [user_id];
-                sql = mysql.format(sql,inserts);
-                connection.query(sql,function(error,rows){
-                        if(error){
-                                reject(error);        
-                        }
-                        if (rows[0].friends !== null) {
-                                //var friends = rows[0].friends.split(',');
-                                var sql = "SELECT DISTINCT(users.id), CONCAT(users.first_name,' ',users.last_name) as name, users.email, users.phone  FROM friends JOIN users ON users.id IN ("+rows[0].friends+")";
-                                //var inserts = [rows[0].friends];
-                                //sql = mysql.format(sql,inserts);
-                                connection.query(sql,function(error,rows){
-                                        if(error){
-                                                reject(error);        
-                                        }
-                                        resolve(rows);
-                                });
-                        }else{
-                            rows[0].friends = 0;    
-                            resolve(rows);
-                        }
-                });
-        });      
-};
 
-UserModel.prototype.searchFriend = function(user_id,query_string){
-        
-        return new Promise(function(resolve,reject){
-                var sql = "SELECT GROUP_CONCAT(friend_id) as friends FROM friends WHERE `user_id` = ?";
-                var inserts = [user_id];
-                sql = mysql.format(sql,inserts);
-                connection.query(sql,function(error,rows){
-                        if(error){
-                                reject(error);        
-                        }
-                        if (rows[0].friends !== null) {
-                                var sql = "SELECT DISTINCT(users.id), CONCAT(users.first_name,' ',users.last_name) as name, users.email, users.phone  FROM friends JOIN users ON users.id IN ("+rows[0].friends+") WHERE users.first_name LIKE \""+query_string+"%\" OR users.last_name LIKE \""+query_string+"%\"";
-                                connection.query(sql,function(error,rows){
-                                        if(error){
-                                                reject(error);        
-                                        }
-                                        resolve(rows);
-                                });
-                        }else{
-                            rows[0].friends = 0;    
-                            resolve(rows);
-                        }
-                });
-        });      
-};
-
-UserModel.prototype.deleteFriend = function(user_id,friend_id){
-        
-        return new Promise(function(resolve,reject){
-                var sql = "DELETE FROM friends WHERE user_id = ? AND friend_id = ?";
-                var inserts = [user_id,friend_id];
-                sql = mysql.format(sql,inserts);
-                connection.query(sql,function(error,rows){
-                        if(error){
-                                reject(error);
-                        }
-                        if (rows.affectedRows !== 0) {
-                                resolve(rows);    
-                        }else{
-                                reject("User Relation doesn't exist.");
-                        }
-                        
-                });
-        });      
-};
-
-UserModel.prototype.viewFriend = function(user_id,friend_id){
-        
-        return new Promise(function(resolve,reject){
-                var sql = "SELECT DISTINCT(u.id),CONCAT(u.first_name,' ',u.last_name) as name, u.phone, u.email FROM users as u JOIN  friends as f ON u.id = f.friend_id WHERE f.user_id = ? AND f.friend_id = ?";
-                var inserts = [user_id,friend_id];
-                sql = mysql.format(sql,inserts);
-                connection.query(sql,function(error,rows){
-                        if(error){
-                                reject(error);
-                        }
-                        if (rows.length > 0) {
-                                resolve(rows);    
-                        }else{
-                                reject("User Relation doesn't exist.");
-                        }
-                        
-                });
-        });      
-};
-
-UserModel.prototype.validateToken = function(token){
-              
-        return new Promise(function(resolve,reject){
-                var sql = "SELECT id FROM users WHERE access_token = ?";
-                var inserts = [token];
-                sql = mysql.format(sql,inserts);
-                connection.query(sql,function(error,rows){
-                        if(error){
-                                reject(error);
-                        }
-                        if (rows.length > 0) {
-                            resolve(rows[0].id);
-                        }else{
-                            reject("Invalid access token.");
-                        }
-                        
-                });
-        });
-};
 
 module.exports  =   UserModel;
