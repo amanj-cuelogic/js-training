@@ -2,6 +2,10 @@ var Joi =   require("joi");
 var Boom    =   require("boom");
 var model   =   require("./models");
 var bcrypt  =   require("bcrypt");
+var promise = require("bluebird");
+//var User = require("./models/user-model.js");
+promise.promisifyAll(model.usermodel);
+
 
 global.salt    =   bcrypt.genSaltSync(10);
 
@@ -32,19 +36,18 @@ module.exports = [
         path    :   "/users",
         config  : {
             handler :   function(req,rep){
-                model.usermodel.getAllUsers().then(function(data){
-                    rep(data);
-                },function(data){
-                    rep(Boom.badRequest(data));
+                
+                model.usermodel.getAllUsersAsync().then(function(response){
+                    rep(response);    
+                },function(error){
+                    rep(Boom.badRequest(error));
                 });
+                
             },
             auth : {
                 strategy    :   'token'
             }
         }
-        
-        
-        
     },
     {
         method  :   "GET",
@@ -52,22 +55,27 @@ module.exports = [
         handler :   function(req,rep){
             
             var userId = req.auth.credentials.id;
-            model.usermodel.getUser(userId).then(function(data){
-                rep(data);
-            },function(data){
-                rep(Boom.badRequest(data));
+            model.usermodel.getUserAsync(userId).then(function(response){
+                    rep(response);    
+                },function(error){
+                    rep(Boom.badRequest(error));
             });
+            //
+            //model.usermodel.getUser(userId,function(data){
+            //        rep(data); 
+            //});
         },
     },
     {
         method  :   "POST",
         path    :   "/users",
         handler :   function(req,rep){
-                        model.usermodel.createUser(req).then(function(data){
-                            rep(data);
-                        },function(data){
-                            rep(Boom.badRequest(data));
-                        });    
+            
+                model.usermodel.createUserAsync(req).then(function(data){
+                    rep(data);
+                },function(data){
+                    rep(Boom.badRequest(data));
+                });    
                 
         },
         config  :   {
@@ -85,11 +93,13 @@ module.exports = [
         path    :   "/users/{id}",
         handler :   function(req,rep){
             var userId = req.params.id;
-            model.usermodel.deleteUser(userId).then(function(data){
+            
+            model.usermodel.deleteUserAsync(userId).then(function(data){
                 rep(data);
             }, function(data){
                 rep(Boom.badRequest(data));
             });
+            
         },
         config  :   {
             validate    :   {
@@ -106,7 +116,7 @@ module.exports = [
         handler :   function(req,rep){
             
                     var userId = req.auth.credentials.id;
-                    model.usermodel.updateUser(req,userId).then(function(data){
+                    model.usermodel.updateUserAsync(req,userId).then(function(data){
                         rep(data);
                     },function(data){
                         rep(Boom.badRequest(data));

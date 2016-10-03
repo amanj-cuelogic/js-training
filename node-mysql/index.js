@@ -1,12 +1,8 @@
 var Hapi    =   require("hapi");
 var mysql   =   require("mysql");
 var Blipp   =   require("blipp");
-//var model   =   require("./models");
 var hapiauthjwt = require('hapi-auth-jwt');
 var AppRoutes   =   require("./routes");
-//var Joi =   require("joi");
-var jwt = require('jsonwebtoken');
-//var Boom    =   require("boom");
 
 
 var server  =   new Hapi.Server();
@@ -25,13 +21,11 @@ global.connection =   mysql.createConnection({
      
     });
 
-    connection.connect(function(error){
-        if(error){
-            throw error;
-        }else{
+    connection.connectAsync().then(function(){
             console.log("Connected to DB");
-        }    
-    });
+        },function(data){
+            console.log(data);
+        });
 
 global.privateKey = 'BbZJjyoXAdr8BUZuiKKARWimKfrSmQ6fv8kZ7OFfc';
 
@@ -39,7 +33,6 @@ global.privateKey = 'BbZJjyoXAdr8BUZuiKKARWimKfrSmQ6fv8kZ7OFfc';
 var validate = function (request, decodedToken, callback) {
     var error,
         credentials = decodedToken || {};
-    console.log(decodedToken);
     if (!credentials) {
         return callback(error, false, credentials);
     }
