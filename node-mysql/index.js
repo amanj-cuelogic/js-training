@@ -3,7 +3,9 @@ var mysql   =   require("mysql");
 var Blipp   =   require("blipp");
 var hapiauthjwt = require('hapi-auth-jwt');
 var AppRoutes   =   require("./routes");
-
+var model = require("./models");
+var promise = require("bluebird");
+promise.promisifyAll(model.usermodel);
 
 var server  =   new Hapi.Server();
 
@@ -33,11 +35,20 @@ global.privateKey = 'BbZJjyoXAdr8BUZuiKKARWimKfrSmQ6fv8kZ7OFfc';
 var validate = function (request, decodedToken, callback) {
     var error,
         credentials = decodedToken || {};
+        
     if (!credentials) {
         return callback(error, false, credentials);
-    }
-
-    return callback(error, true, credentials);
+    }else{
+        model.usermodel.getUserAsync(credentials.id).then(function(response){
+            if ( !response.length || response[0].access_token === null ) {
+                 return callback(error, false, credentials);
+            }else{
+                 return callback(error, true, credentials);        
+            }
+         },function(error){
+             return callback(error, false, credentials);
+         });    
+    }    
 };
 
 server.register([

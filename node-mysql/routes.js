@@ -2,7 +2,10 @@ var Joi =   require("joi");
 var Boom    =   require("boom");
 var model   =   require("./models");
 var bcrypt  =   require("bcrypt");
+var mysql = require("mysql");
 var promise = require("bluebird");
+//promise.promisifyAll(require("mysql/lib/Connection").prototype);
+
 //var User = require("./models/user-model.js");
 promise.promisifyAll(model.usermodel);
 promise.promisifyAll(model.accountmodel);
@@ -71,8 +74,10 @@ module.exports = [
         method  :   "POST",
         path    :   "/users",
         handler :   function(req,rep){
-            
-                model.usermodel.createUserAsync(req).then(function(data){
+                
+                var password = bcrypt.hashSync(req.payload.password,salt);
+                var userData =   [req.payload.first_name.trim(),req.payload.last_name.trim(),req.payload.email,req.payload.phone,password];  
+                model.usermodel.createUserAsync(userData).then(function(data){
                     rep(data);
                 },function(data){
                     rep(Boom.badRequest(data));
@@ -156,6 +161,7 @@ module.exports = [
         path    :   "/logout",
         handler :   function(req,rep){
                     var userId = req.auth.credentials.id;
+                    console.log(req.auth.credentials);
                     model.accountmodel.logoutAsync(userId).then(function(response){
                             return rep(response).code(200);    
                         },function(error){
@@ -262,7 +268,71 @@ module.exports = [
                 }
             }
         }
+    },
+    {
+        method  :   "GET",
+        path    :   "/promisetestlink",
+        handler :   function(req,rep){
+                    var userId = req.auth.credentials.id;
+                    promise.all([model.usermodel.getAllUsersAsync(),model.usermodel.getUserAsync(userId)])
+                            .then(function(results){
+                                rep(results);   
+                            }).catch(function(error){
+                                rep(Boom.badRequest(error));
+                            });  
+        },
+    },
+    {
+        method  :   "GET",
+        path    :   "/promise-spreadtestlink",
+        handler :   function(req,rep){
+                    var userId = req.auth.credentials.id;
+                    promise.all([model.usermodel.getAllUsersAsync(),model.usermodel.getUserAsync(userId)])
+                            .spread(function(allusers,userdetails){
+                                rep(userdetails);   
+                            }).catch(function(error){
+                                rep(Boom.badRequest(error));
+                            });  
+        }
+    },
+    {
+        
+        method  :   "POST",
+        path    :   "/promise-dtestlink",
+        handler :   function(req,rep){
+                    
+                        //var password = bcrypt.hashSync(req.payload.password,salt);
+                        var userData = ['Aman','Juneja','am.ju@in.com','123456789','ajuneja123'];
+                        var a = model.usermodel.createUserAsync(userData);
+                        var b = a.then(function(){
+                            var userData = ['Test','User','te.us@in.com','123456789','tuser123'];
+                            return model.usermodel.createUserAsync(userData);
+                                    
+                        });
+                        var c = b.then(function(){
+                                console.log(b);
+                                var userData = ['Test1','User1','te1.us1@in.com','123456789','tuser1123'];
+                                return model.usermodel.createUserAsync(userData);    
+                        });
+                        
+                        //var d = c.then(function(){
+                        //    rep(a.value()+'-'+b.value()+'-'+c.value());
+                        //}).catch(function(err){
+                        //    rep(Boom.badRequest(err));    
+                        //});
+                        promise.all([a,b,c]).spread(function(resp1,resp2,resp3){
+                            rep(resp1+'-'+resp2+'-'+resp3);
+                        }).catch(function(err){
+                            rep(Boom.badRequest(err));    
+                        });
+        },
+        config  :   {
+            auth    :   false
+        }
+        
     }
+    
+    
     
    
 ];

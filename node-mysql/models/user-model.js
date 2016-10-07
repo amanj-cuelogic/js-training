@@ -28,14 +28,14 @@ UserModel.prototype.getUser =  function getUser(userId,callback){
               
       };
       
-UserModel.prototype.createUser  =   function createUser(req,callback){
+UserModel.prototype.createUser  =   function createUser(userData,callback){
               
-              var password = bcrypt.hashSync(req.payload.password,salt);
-              var userData =   [req.payload.first_name.trim(),req.payload.last_name.trim(),req.payload.email,req.payload.phone,password];
+              //var inserIdArr = [];
               var sql =   "INSERT INTO users (`first_name`,`last_name`,`email`,`phone`,`password`) VALUES (?,?,?,?,?)";
               sql =   mysql.format(sql,userData);
               connection.queryAsync(sql).then(function(response){
-                            callback('',response);              
+                            //inserIdArr.push(response.insertId);
+                            callback('',response.insertId);              
               },function(error){
                             callback(error);
               });                  

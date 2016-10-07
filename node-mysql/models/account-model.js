@@ -24,7 +24,7 @@ AccountModel.prototype.login    =   function login(req,callback){
                         if(rows[0].hasOwnProperty("access_token") && rows[0].access_token){
                             jwt.verify(rows[0].access_token,privateKey,function(err){
                                 if(err){
-                                    var token = jwt.sign({ id: rows[0].id , iat : Date.now() + 48*3600*60 }, privateKey, { algorithm: 'HS256'} );
+                                    var token = jwt.sign({ id: rows[0].id }, privateKey, { algorithm: 'HS256', expiresIn : "1 days"} );
                                     callback(null,{"access_token":token});
                                 }
                                 callback(null,{"access_token":rows[0].access_token});
@@ -33,7 +33,7 @@ AccountModel.prototype.login    =   function login(req,callback){
                             
                         }else{
                             //var access_token = hat();
-                            var token = jwt.sign({ id: rows[0].id , iat : Date.now() + 48*3600*60 }, privateKey, { algorithm: 'HS256'} );
+                            var token = jwt.sign({ id: rows[0].id }, privateKey, { algorithm: 'HS256' , expiresIn : "1 days"} );
                             var sql = "UPDATE users SET access_token = ? WHERE id = ?";
                             var inserts = [token,rows[0].id];
                             sql = mysql.format(sql,inserts);
